@@ -1,0 +1,54 @@
+# --- Kubernetes Deployment Configuration ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: food-order-deployment
+  labels:
+    app: food-order-app
+spec:
+  # Run 3 instances (replicas) of your application
+  replicas: 3
+  selector:
+    matchLabels:
+      app: food-order-app
+  template:
+    metadata:
+      labels:
+        app: food-order-app
+    spec:
+      containers:
+      - name: food-order-container
+        # Replace 'your-docker-username/food-delivery-app:latest' with the image 
+        # name you pushed to Docker Hub or another registry.
+        image: food-delivery-app:latest 
+        ports:
+        - containerPort: 8080
+        # Define resource requests/limits for better stability
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+---
+# --- Kubernetes Service Configuration ---
+# The Service exposes the Deployment externally so users can access the application.
+apiVersion: v1
+kind: Service
+metadata:
+  name: food-order-service
+spec:
+  # NodePort allows access via a port on each node in your cluster (e.g., http://<NodeIP>:<NodePort>)
+  # You could use LoadBalancer for cloud environments (AWS, GCP, Azure)
+  type: NodePort 
+  selector:
+    app: food-order-app # Select the pods created by the Deployment above
+  ports:
+    # Port that the Service exposes
+    - protocol: TCP
+      port: 80 
+      # Port on the pod/container (Tomcat default)
+      targetPort: 8080
+      # The port on the node to open for external traffic
+      nodePort: 30080
