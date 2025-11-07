@@ -1,37 +1,19 @@
-# Use a multi-stage build for a smaller final image
-
-# STAGE 1: Build the Application
-# Use a standard Java SDK image to compile and package the application
-FROM openjdk:17-jdk-slim AS build
-
-# Set the working directory inside the container
+# Stage 1: Build the application (using a multi-stage build)
+FROM maven:3.8.7-openjdk-17 AS build
 WORKDIR /app
-
-# Copy the Maven configuration file
 COPY pom.xml .
+COPY src /app/src
+RUN mvn clean package -DskipTests
 
-# Copy the source code (assuming you built the JAR/WAR locally before running docker build)
-# In a real scenario, you'd copy the entire project and run 'mvn package' here.
-# For simplicity, we assume the application is built into a JAR named 'food-delivery-app.jar'
-# in the target directory (as per pom.xml's finalName).
-# *** YOU MUST RUN 'mvn clean package' LOCALLY BEFORE BUILDING THE DOCKER IMAGE ***
-COPY target/food-delivery-app.jar /app/app.jar
-
-# STAGE 2: Create the Final Lightweight Runtime Image
-# Use a JRE-only image for minimum size and security
+# Stage 2: Create the final, lightweight image
 FROM openjdk:17-jre-slim
+# Create a non-root user for security
+RUN groupadd --system appuser && useradd --system -g appuser appuser
+USER appuser
+# Copy the built JAR from the 'build' stage
+COPY --from=build /app/target/*.jar app.jar
+# Expose the port (default for Spring Boot)
+EXPOSE 8080
+# Define the entry point to run the application
+ENTRYPOINT ["java","-jar","/app.jar"]
 
-# Set environment variable for the application name
-ENV ARTIFACT_NAME=app.jar
-ENV ARTIFACT_PATH=/usr/app
-ENV PORT=8080
-
-# Create the application directory and copy the JAR from the build stage
-WORKDIR ${ARTIFACT_PATH}
-COPY --from=build /app/${ARTIFACT_NAME} .
-
-# Expose the port that Spring Boot's embedded Tomcat runs on (default 8080)
-EXPOSE ${PORT}
-
-# The command to run the application when the container starts
-ENTRYPOINT ["java", "-jar", "app.jar"]
