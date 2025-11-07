@@ -22,7 +22,6 @@
     </properties>
 
     <dependencies>
-        <!-- Spring Boot Starter Web: Includes Tomcat and all web dependencies -->
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
@@ -64,3 +63,4 @@
     </build>
 
 </project>
+
